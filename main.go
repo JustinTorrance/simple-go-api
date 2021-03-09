@@ -27,9 +27,18 @@ type Author struct {
 // slice is a variable length array
 var books []Book
 
+func setupCorsResponse(w *http.ResponseWriter, req *http.Request) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Authorization")
+}
+
 // Get All Books
 func getBooks(w http.ResponseWriter, router *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+   if (*router).Method == "OPTIONS" {
+      return
+   }
 	json.NewEncoder(w).Encode(books)
 }
 
@@ -89,6 +98,7 @@ func deleteBook(w http.ResponseWriter, router *http.Request) {
 func main() {
 	//Init Router
 	router := mux.NewRouter()
+
 
 	// Mock Data @todo - implement DB
 	books = append(books, Book{ID: "1", Isbn: "33857", Title: "Gone With The Wind", Author: &Author {Firstname: "Bob", Lastname: "Johnson"}})
