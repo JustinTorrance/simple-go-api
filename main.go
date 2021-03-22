@@ -2,15 +2,28 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"log"
-	"net/http"
 	"math/rand"
+	"net/http"
 	"strconv"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm" 
+
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
+
+type Person struct {
+	gorm.Model
+
+	Name string
+	Books []Book
+}
 
 // Book Struct (Model)
 type Book struct {
+	gorm.Model
 	ID 			string `json:"id"`
 	Isbn 		string `json:"isbn"`
 	Title 	string `json:"title"`
@@ -19,8 +32,10 @@ type Book struct {
 
 // Author Struct
 type Author struct {
+	gorm.Model
 	Firstname 	string `json:"firstname"`
 	Lastname 		string `json:"lastname"`
+	Isbn				string `json:"isbn"`
 }
 
 // Init books var as a slice Book struct
@@ -95,14 +110,52 @@ func deleteBook(w http.ResponseWriter, router *http.Request) {
 	}
 }
 
+var (
+	favBooks = &Book{ID: "269", Isbn: "0987", Title: "Norse Mythology"}
+	authors = &Author{Firstname: "Neil", Lastname: "Gaiman", Isbn: "0987"}
+)
+
+var db *gorm.DB
+var err error
+
 func main() {
 	//Init Router
 	router := mux.NewRouter()
 
+	//Loading environment variables
+	dialect := os.Getenv("DIALECT")
+	host := os.Getenv("HOST")
+	dbPort := os.Getenv("DBPORT")
+	user := os.Getenv("USER")
+	dbname := os.Getenv("NAME")
+	dbpassword := os.Getenv("PASSWORD")
 
-	// Mock Data @todo - implement DB
-	books = append(books, Book{ID: "1", Isbn: "33857", Title: "Gone With The Wind", Author: &Author {Firstname: "Bob", Lastname: "Johnson"}})
-	books = append(books, Book{ID: "2", Isbn: "89867", Title: "Call of the Wild", Author: &Author {Firstname: "Jack", Lastname: "London"}})
+	//Database connection string
+	dbURI := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s port=%s", host, user, dbname, dbpassword, dbPort)
+
+	//Opening connection to database
+	db, err = gorm.Open(dialect, dbURI)
+	if err != nil {
+		log.Fatal(err)
+	} else {
+		fmt.Println("Successfully connected to database!")
+	}
+
+	// Close connection to database when the main function finishes
+	defer db.Close()
+
+	//Make migrations to database if they have not already been created
+	db.AutoMigrate(&Book{})
+	db.AutoMigrate(&Author{})
+
+
+	db.Create(favBooks)
+	// db.Create(authors)
+
+
+	// for idx := range books {
+	// 	db.Create(&favBooks)
+	// }
 
 	//Route Handlers / Endpoints
 	router.HandleFunc("/api/books", getBooks).Methods("GET")
