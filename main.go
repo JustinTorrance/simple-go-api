@@ -38,6 +38,7 @@ type Author struct {
 	Isbn				string `json:"isbn"`
 }
 
+
 // Init books var as a slice Book struct
 // slice is a variable length array
 var books []Book
