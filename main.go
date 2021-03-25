@@ -50,12 +50,20 @@ func setupCorsResponse(w *http.ResponseWriter, req *http.Request) {
 }
 
 // Get All Books
-func getBooks(w http.ResponseWriter, router *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-   if (*router).Method == "OPTIONS" {
-      return
-   }
-	json.NewEncoder(w).Encode(books)
+// func getBooks(w http.ResponseWriter, router *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json")
+//    if (*router).Method == "OPTIONS" {
+//       return
+//    }
+// 	json.NewEncoder(w).Encode(books)
+// }
+
+func getBooks(w http.ResponseWriter, r *http.Request) {
+	var books []Book
+
+	db.Find(&favBooks)
+
+	json.NewEncoder(w).Encode(&books)
 }
 
 // Get Single Book
