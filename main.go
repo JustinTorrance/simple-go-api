@@ -50,6 +50,7 @@ func setupCorsResponse(w *http.ResponseWriter, req *http.Request) {
 }
 
 // Get All Books
+
 // func getBooks(w http.ResponseWriter, router *http.Request) {
 // 	w.Header().Set("Content-Type", "application/json")
 //    if (*router).Method == "OPTIONS" {
@@ -58,36 +59,49 @@ func setupCorsResponse(w *http.ResponseWriter, req *http.Request) {
 // 	json.NewEncoder(w).Encode(books)
 // }
 
-func getBooks(w http.ResponseWriter, r *http.Request) {
+func getBooks(w http.ResponseWriter, router *http.Request) {
 	var books []Book
-
 	db.Find(&favBooks)
-
 	json.NewEncoder(w).Encode(&books)
 }
 
 // Get Single Book
-func getBook(w http.ResponseWriter, router *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(router) // Get params
-	//Loop through books and find id
-	for _, item := range books {
-		if item.ID == params["id"] {
-			json.NewEncoder(w).Encode(item)
-			return
-		}
-	}
-	json.NewEncoder(w).Encode(&Book{})
-}
+
+// func getBook(w http.ResponseWriter, router *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	params := mux.Vars(router) // Get params
+// 	//Loop through books and find id
+// 	for _, item := range books {
+// 		if item.ID == params["id"] {
+// 			json.NewEncoder(w).Encode(item)
+// 			return
+// 		}
+// 	}
+// 	json.NewEncoder(w).Encode(&Book{})
+// }
 
 // Create New Book
+
+// func createBook(w http.ResponseWriter, router *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	var book Book
+// 	_ = json.NewDecoder(router.Body).Decode(&book)
+// 	book.ID = strconv.Itoa(rand.Intn(10000000)) //Mock ID - not safe
+// 	books = append(books, book)
+// 	json.NewEncoder(w).Encode(book)
+// }
+
 func createBook(w http.ResponseWriter, router *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	var book Book
-	_ = json.NewDecoder(router.Body).Decode(&book)
-	book.ID = strconv.Itoa(rand.Intn(10000000)) //Mock ID - not safe
-	books = append(books, book)
-	json.NewEncoder(w).Encode(book)
+	json.NewDecoder(router.Body).Decode(&book)
+
+	createdPerson := db.Create(&book)
+	err = createdPerson.Error
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	json.NewEncoder(w).Encode(&createdBook)
 }
 
 // Update Book
