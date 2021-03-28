@@ -67,18 +67,18 @@ func getBooks(w http.ResponseWriter, router *http.Request) {
 
 // Get Single Book
 
-// func getBook(w http.ResponseWriter, router *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	params := mux.Vars(router) // Get params
-// 	//Loop through books and find id
-// 	for _, item := range books {
-// 		if item.ID == params["id"] {
-// 			json.NewEncoder(w).Encode(item)
-// 			return
-// 		}
-// 	}
-// 	json.NewEncoder(w).Encode(&Book{})
-// }
+func getBook(w http.ResponseWriter, router *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+	params := mux.Vars(router) // Get params
+	//Loop through books and find id
+	for _, item := range books {
+		if item.ID == params["id"] {
+			json.NewEncoder(w).Encode(item)
+			return
+		}
+	}
+	json.NewEncoder(w).Encode(&Book{})
+}
 
 // Create New Book
 
@@ -122,15 +122,27 @@ func updateBook(w http.ResponseWriter, router *http.Request) {
 }
 
 // Delete Book
+
+// func deleteBook(w http.ResponseWriter, router *http.Request) {
+// 	w.Header().Set("Content-Type", "application/json")
+// 	params := mux.Vars(router)
+// 	for index, item := range books {
+// 		if item.ID == params["id"] {
+// 			books = append(books[:index], books[index+1:]...)
+// 			break
+// 		}
+// 	}
+// }
+
 func deleteBook(w http.ResponseWriter, router *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
 	params := mux.Vars(router)
-	for index, item := range books {
-		if item.ID == params["id"] {
-			books = append(books[:index], books[index+1:]...)
-			break
-		}
-	}
+
+	var book Book
+
+	db.First(&book, params["id"])
+	db.Delete(&book)
+
+	json.NewEncoder(w).Encode(&book)
 }
 
 var (
