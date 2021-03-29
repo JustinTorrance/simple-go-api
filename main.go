@@ -65,6 +65,14 @@ func getBooks(w http.ResponseWriter, router *http.Request) {
 	json.NewEncoder(w).Encode(&books)
 }
 
+func getAuthor(w http.ResponseWriter, router *http.Request) {
+	var authors []Author
+
+	db.Find(&authors)
+
+	json.NewEncoder(w).Encode(&authors)
+}
+
 // Get Single Book
 
 func getBook(w http.ResponseWriter, router *http.Request) {
