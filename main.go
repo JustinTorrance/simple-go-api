@@ -14,10 +14,11 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
 
-type Person struct {
+type User struct {
 	gorm.Model
 
-	Name string
+	Name  string
+	Email string `gorm:"typevarchar(100);unique_index"`
 	Books []Book
 }
 
