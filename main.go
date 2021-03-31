@@ -89,28 +89,32 @@ func getBook(w http.ResponseWriter, router *http.Request) {
 	json.NewEncoder(w).Encode(&Book{})
 }
 
-// Create New Book
-
-// func createBook(w http.ResponseWriter, router *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	var book Book
-// 	_ = json.NewDecoder(router.Body).Decode(&book)
-// 	book.ID = strconv.Itoa(rand.Intn(10000000)) //Mock ID - not safe
-// 	books = append(books, book)
-// 	json.NewEncoder(w).Encode(book)
-// }
+// Create
 
 func createBook(w http.ResponseWriter, router *http.Request) {
 	var book Book
 	json.NewDecoder(router.Body).Decode(&book)
 
-	createdPerson := db.Create(&book)
-	err = createdPerson.Error
+	createdBook := db.Create(&book)
+	err = createdBook.Error
 	if err != nil {
 		fmt.Println(err)
 	}
 
 	json.NewEncoder(w).Encode(&createdBook)
+}
+
+func createUser(w http.ResponseWriter, router *http.Request) {
+	var user User
+	json.NewDecoder(router.Body).Decode(&user)
+
+	createdUser := db.Create(&user)
+	err = createdUser.Error
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	json.NewEncoder(w).Encode(&createdUser)
 }
 
 // Update Book
