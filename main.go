@@ -3,13 +3,12 @@ package main
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"log"
-	"math/rand"
 	"net/http"
-	"strconv"
+	"os"
+
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm" 
+	"github.com/jinzhu/gorm"
 
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 )
@@ -22,91 +21,90 @@ type User struct {
 	Books []Book
 }
 
-// Book Struct (Model)
 type Book struct {
 	gorm.Model
-	ID 			string `json:"id"`
-	Isbn 		string `json:"isbn"`
-	Title 	string `json:"title"`
-	Author 	*Author `json:"author"`
+
+	Title      string
+	Author     string
+	CallNumber int
+	UserID   int
 }
 
-// Author Struct
-type Author struct {
-	gorm.Model
-	Firstname 	string `json:"firstname"`
-	Lastname 		string `json:"lastname"`
-	Isbn				string `json:"isbn"`
-}
+var db *gorm.DB
+var err error
 
+func main() {
+	// Loading enviroment variables
+	dialect := os.Getenv("DIALECT")
+	host := os.Getenv("HOST")
+	dbPort := os.Getenv("DBPORT")
+	user := os.Getenv("USER")
+	dbname := os.Getenv("NAME")
+	dbpassword := os.Getenv("PASSWORD")
 
-// Init books var as a slice Book struct
-// slice is a variable length array
-var books []Book
+	// Database connection string
+	dbURI := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s port=%s", host, user, dbname, dbpassword, dbPort)
 
-func setupCorsResponse(w *http.ResponseWriter, req *http.Request) {
-	(*w).Header().Set("Access-Control-Allow-Origin", "*")
-	(*w).Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-	(*w).Header().Set("Access-Control-Allow-Headers", "Accept, Content-Type, Content-Length, Authorization")
-}
+	// Openning connection to database
+	db, err = gorm.Open(dialect, dbURI)
 
-// Get All Books
-
-// func getBooks(w http.ResponseWriter, router *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-//    if (*router).Method == "OPTIONS" {
-//       return
-//    }
-// 	json.NewEncoder(w).Encode(books)
-// }
-
-func getBooks(w http.ResponseWriter, router *http.Request) {
-	var books []Book
-	db.Find(&favBooks)
-	json.NewEncoder(w).Encode(&books)
-}
-
-func getAuthor(w http.ResponseWriter, router *http.Request) {
-	var authors []Author
-
-	db.Find(&authors)
-
-	json.NewEncoder(w).Encode(&authors)
-}
-
-// Get Single Book
-
-func getBook(w http.ResponseWriter, router *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(router) // Get params
-	//Loop through books and find id
-	for _, item := range books {
-		if item.ID == params["id"] {
-			json.NewEncoder(w).Encode(item)
-			return
-		}
-	}
-	json.NewEncoder(w).Encode(&Book{})
-}
-
-// Create
-
-func createBook(w http.ResponseWriter, router *http.Request) {
-	var book Book
-	json.NewDecoder(router.Body).Decode(&book)
-
-	createdBook := db.Create(&book)
-	err = createdBook.Error
 	if err != nil {
-		fmt.Println(err)
+		panic(err)
+	} else {
+		fmt.Println("Connected to database successfully")
 	}
 
-	json.NewEncoder(w).Encode(&createdBook)
+	// Close the databse connection when the main function closes
+	defer db.Close()
+
+	// Make migrations to the database if they haven't been made already
+	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Book{})
+
+	/*----------- API routes ------------*/
+	router := mux.NewRouter()
+
+	router.HandleFunc("/books", GetBooks).Methods("GET")
+	router.HandleFunc("/book/{id}", GetBook).Methods("GET")
+	router.HandleFunc("/users", GetPeople).Methods("GET")
+	router.HandleFunc("/user/{id}", GetUser).Methods("GET")
+
+	router.HandleFunc("/create/user", CreateUser).Methods("POST")
+	router.HandleFunc("/create/book", CreateBook).Methods("POST")
+
+	router.HandleFunc("/delete/user/{id}", DeleteUser).Methods("DELETE")
+	router.HandleFunc("/delete/book/{id}", DeleteBook).Methods("DELETE")
+
+	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-func createUser(w http.ResponseWriter, router *http.Request) {
+/*-------- API Controllers --------*/
+
+/*----- People ------*/
+func GetUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 	var user User
-	json.NewDecoder(router.Body).Decode(&user)
+	var books []Book
+
+	db.First(&user, params["id"])
+	db.Model(&user).Related(&books)
+
+	user.Books = books
+
+	json.NewEncoder(w).Encode(&user)
+}
+
+func GetPeople(w http.ResponseWriter, r *http.Request) {
+	var users []User
+
+	db.Find(&users)
+
+	json.NewEncoder(w).Encode(&users)
+}
+
+func CreateUser(w http.ResponseWriter, r *http.Request) {
+	var user User
+	json.NewDecoder(r.Body).Decode(&user)
 
 	createdUser := db.Create(&user)
 	err = createdUser.Error
@@ -117,38 +115,51 @@ func createUser(w http.ResponseWriter, router *http.Request) {
 	json.NewEncoder(w).Encode(&createdUser)
 }
 
-// Update Book
-func updateBook(w http.ResponseWriter, router *http.Request) {
-	w.Header().Set("Content-Type", "application/json")
-	params := mux.Vars(router)
-	for index, item := range books {
-		if item.ID == params["id"] {
-			books = append(books[:index], books[index+1:]...)
-			var book Book
-			_ = json.NewDecoder(router.Body).Decode(&book)
-			book.ID = params["id"]
-			books = append(books, book)
-			json.NewEncoder(w).Encode(book)
-			return
-		}
-	}
+func DeleteUser(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+
+	var user User
+
+	db.First(&user, params["id"])
+	db.Delete(&user)
+
+	json.NewEncoder(w).Encode(&user)
 }
 
-// Delete Book
+/*------- Books ------*/
 
-// func deleteBook(w http.ResponseWriter, router *http.Request) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	params := mux.Vars(router)
-// 	for index, item := range books {
-// 		if item.ID == params["id"] {
-// 			books = append(books[:index], books[index+1:]...)
-// 			break
-// 		}
-// 	}
-// }
+func GetBook(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
+	var book Book
 
-func deleteBook(w http.ResponseWriter, router *http.Request) {
-	params := mux.Vars(router)
+	db.First(&book, params["id"])
+
+	json.NewEncoder(w).Encode(&book)
+}
+
+func GetBooks(w http.ResponseWriter, r *http.Request) {
+	var books []Book
+
+	db.Find(&books)
+
+	json.NewEncoder(w).Encode(&books)
+}
+
+func CreateBook(w http.ResponseWriter, r *http.Request) {
+	var book Book
+	json.NewDecoder(r.Body).Decode(&book)
+
+	createdBook := db.Create(&book)
+	err = createdBook.Error
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	json.NewEncoder(w).Encode(&createdBook)
+}
+
+func DeleteBook(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
 	var book Book
 
@@ -156,62 +167,4 @@ func deleteBook(w http.ResponseWriter, router *http.Request) {
 	db.Delete(&book)
 
 	json.NewEncoder(w).Encode(&book)
-}
-
-var (
-	favBooks = &Book{ID: "269", Isbn: "0987", Title: "Norse Mythology"}
-	authors = &Author{Firstname: "Neil", Lastname: "Gaiman", Isbn: "0987"}
-)
-
-var db *gorm.DB
-var err error
-
-func main() {
-	//Init Router
-	router := mux.NewRouter()
-
-	//Loading environment variables
-	dialect := os.Getenv("DIALECT")
-	host := os.Getenv("HOST")
-	dbPort := os.Getenv("DBPORT")
-	user := os.Getenv("USER")
-	dbname := os.Getenv("NAME")
-	dbpassword := os.Getenv("PASSWORD")
-
-	//Database connection string
-	dbURI := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s port=%s", host, user, dbname, dbpassword, dbPort)
-
-	//Opening connection to database
-	db, err = gorm.Open(dialect, dbURI)
-	if err != nil {
-		log.Fatal(err)
-	} else {
-		fmt.Println("Successfully connected to database!")
-	}
-
-	// Close connection to database when the main function finishes
-	defer db.Close()
-
-	//Make migrations to database if they have not already been created
-	db.AutoMigrate(&Book{})
-	db.AutoMigrate(&Author{})
-
-
-	db.Create(favBooks)
-	// db.Create(authors)
-
-
-	// for idx := range books {
-	// 	db.Create(&favBooks)
-	// }
-
-	//Route Handlers / Endpoints
-	router.HandleFunc("/api/books", getBooks).Methods("GET")
-	router.HandleFunc("/api/books/{id}", getBook).Methods("GET")
-	router.HandleFunc("/api/books", createBook).Methods("POST")
-	router.HandleFunc("/api/books/{id}", updateBook).Methods("PUT")
-	router.HandleFunc("/api/books/{id}", deleteBook).Methods("DELETE")
-
-	log.Fatal(http.ListenAndServe(":8000", router))
-
 }
