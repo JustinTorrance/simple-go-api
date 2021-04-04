@@ -64,16 +64,22 @@ func main() {
 	/*----------- API routes ------------*/
 	router := mux.NewRouter()
 
-	router.HandleFunc("/books", GetBooks).Methods("GET")
-	router.HandleFunc("/book/{id}", GetBook).Methods("GET")
-	router.HandleFunc("/users", GetPeople).Methods("GET")
-	router.HandleFunc("/user/{id}", GetUser).Methods("GET")
+	// router.HandleFunc("/books", GetBooks).Methods("GET")
+	// router.HandleFunc("/book/{id}", GetBook).Methods("GET")
+	// router.HandleFunc("/users", GetPeople).Methods("GET")
+	// router.HandleFunc("/user/{id}", GetUser).Methods("GET")
 
-	router.HandleFunc("/create/user", CreateUser).Methods("POST")
-	router.HandleFunc("/create/book", CreateBook).Methods("POST")
+	// router.HandleFunc("/create/user", CreateUser).Methods("POST")
+	// router.HandleFunc("/create/book", CreateBook).Methods("POST")
 
-	router.HandleFunc("/delete/user/{id}", DeleteUser).Methods("DELETE")
-	router.HandleFunc("/delete/book/{id}", DeleteBook).Methods("DELETE")
+	// router.HandleFunc("/delete/user/{id}", DeleteUser).Methods("DELETE")
+	// router.HandleFunc("/delete/book/{id}", DeleteBook).Methods("DELETE")
+
+	router.HandleFunc("/api/books", GetBooks).Methods("GET")
+	router.HandleFunc("/api/books/{id}", GetBook).Methods("GET")
+	router.HandleFunc("/api/books", CreateBook).Methods("POST")
+	// router.HandleFunc("/api/books/{id}", UpdateBook).Methods("PUT")
+	router.HandleFunc("/api/books/{id}", DeleteBook).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
